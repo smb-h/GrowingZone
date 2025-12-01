@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GrowingZone</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Tab icon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      overflow: hidden; /* No scrollbars on x or y */
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f172a;
+      color: #e5e7eb;
+    }
+
+    .app {
+      height: 100vh;
+      width: 100vw;
+      display: flex;
+      flex-direction: row;
+      box-sizing: border-box;
+    }
+
+    .sidebar {
+      width: 260px;
+      min-width: 240px;
+      padding: 16px 18px;
+      box-sizing: border-box;
+      background: radial-gradient(circle at top left, #1f2937, #020617);
+      border-right: 1px solid #1f2937;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .title-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .subtitle {
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    .section {
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: rgba(15,23,42,0.7);
+      border: 1px solid rgba(55,65,81,0.6);
+      box-shadow: 0 12px 25px rgba(15,23,42,0.75);
+    }
+
+    .section h2 {
+      margin: 0 0 6px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+    }
+
+    label {
+      font-size: 0.8rem;
+      color: #d1d5db;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      font-size: 0.8rem;
+      margin-top: 6px;
+    }
+
+    .controls-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
+    }
+
+    .small-text {
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    .value-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 40px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: #111827;
+      border: 1px solid #374151;
+      font-size: 0.75rem;
+      margin-left: 6px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+    }
+
+    .buttons-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    button {
+      flex: 1;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: none;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.15s ease, background 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    button.primary {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: white;
+      box-shadow: 0 12px 20px rgba(34,197,94,0.35);
+    }
+
+    button.primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    button.secondary {
+      background: #111827;
+      color: #e5e7eb;
+      border: 1px solid #374151;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 18px rgba(15,23,42,0.7);
+    }
+
+    button:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 6px 12px rgba(15,23,42,0.8);
+    }
+
+    .status {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 4px;
+      min-height: 2.4em;
+    }
+
+    .status strong {
+      color: #e5e7eb;
+    }
+
+    .canvas-area {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: radial-gradient(circle at top, #1e293b, #020617);
+      box-sizing: border-box;
+      padding: 10px;
+    }
+
+    canvas {
+      max-width: 100%;
+      max-height: 100%;
+      border-radius: 14px;
+      background: #020617;
+      box-shadow: 0 18px 35px rgba(15,23,42,0.85);
+      cursor: crosshair;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    /* --- footer --- */
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      padding: 4px 10px;
+      font-size: 0.7rem;
+      text-align: center;
+      background: rgba(15,23,42,0.95);
+      border-top: 1px solid #1f2937;
+      color: #6b7280;
+      pointer-events: none; /* so it doesn't block clicks on the canvas area near bottom */
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div>
+        <div class="title">
+          <img src="favicon.png" alt="GrowingZone icon" class="title-icon">
+          GrowingZone
+        </div>
+        <div class="subtitle">Interactive Region Growing</div>
+      </div>
+
+      <div class="section">
+        <h2>1. Load image</h2>
+        <label for="imageInput">Choose an image file:</label>
+        <input id="imageInput" type="file" accept="image/*">
+        <p class="small-text">
+          The image will be fit inside the window. No scrolling, just zoomed-to-fit.
+        </p>
+      </div>
+
+      <div class="section">
+        <h2>2. Seed & threshold</h2>
+        <div class="controls-group">
+          <div>
+            <label>Seed pixel:</label>
+            <div class="small-text" id="seedInfo">Click on the image to pick a seed.</div>
+          </div>
+
+          <div>
+            <label for="thresholdRange">
+              Threshold
+              <span class="value-pill" id="thresholdValue">20</span>
+            </label>
+            <input
+              id="thresholdRange"
+              type="range"
+              min="0"
+              max="255"
+              value="20"
+            >
+            <p class="small-text">
+              Higher = region grows more easily (looser similarity).
+            </p>
+          </div>
+        </div>
+
+        <div class="buttons-row">
+          <button id="growButton" class="primary" disabled>▶ Start Growing</button>
+          <button id="resetButton" class="secondary" disabled>⟲ Reset</button>
+        </div>
+        <div class="status" id="statusBox">
+          Load an image, click on it to pick a seed, then press <strong>Start Growing</strong>.
+        </div>
+      </div>
+
+      <div class="section">
+        <h2>Notes</h2>
+        <p class="small-text">
+          • Each time you click <strong>Start Growing</strong>, a new region is added on top of previous ones.<br>
+          • <strong>Reset</strong> clears all regions and restores the original image.
+        </p>
+      </div>
+    </aside>
+
+    <main class="canvas-area">
+      <canvas id="canvas"></canvas>
+    </main>
+  </div>
+
+  <!-- footer with dynamic year -->
+  <footer class="footer">
+    © <span id="year"></span> GrowingZone – All rights reserved.
+  </footer>
+
+<script>
+  const imageInput = document.getElementById('imageInput');
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+  const thresholdRange = document.getElementById('thresholdRange');
+  const thresholdValue = document.getElementById('thresholdValue');
+  const growButton = document.getElementById('growButton');
+  const resetButton = document.getElementById('resetButton');
+  const seedInfo = document.getElementById('seedInfo');
+  const statusBox = document.getElementById('statusBox');
+
+  let baseImageData = null;  // Original image pixels (used for similarity test)
+  let imageLoaded = false;
+  let seed = null;           // { x, y }
+  let currentRegionColorIndex = 0;
+  let isAnimating = false;   // prevent multiple animations at once
+
+  const regionColors = [
+    [255, 75, 75],
+    [35, 209, 96],
+    [59, 130, 246],
+    [234, 179, 8],
+    [239, 68, 153],
+    [16, 185, 129]
+  ];
+
+  function setStatus(text, isError = false) {
+    statusBox.textContent = text;
+    statusBox.style.color = isError ? '#f97373' : '#9ca3af';
+  }
+
+  function setSeedInfo(x, y) {
+    seedInfo.textContent = `Seed at (x=${x}, y=${y})`;
+  }
+
+  function fitCanvasToImage(img) {
+    // Fit image in canvas while preserving aspect ratio and staying inside canvas-area padding.
+    const area = document.querySelector('.canvas-area');
+    const maxW = area.clientWidth - 20;
+    const maxH = area.clientHeight - 20;
+
+    const imgRatio = img.width / img.height;
+    const areaRatio = maxW / maxH;
+
+    let drawW, drawH;
+    if (imgRatio > areaRatio) {
+      drawW = maxW;
+      drawH = maxW / imgRatio;
+    } else {
+      drawH = maxH;
+      drawW = maxH * imgRatio;
+    }
+
+    canvas.width = Math.floor(drawW);
+    canvas.height = Math.floor(drawH);
+  }
+
+  function loadImageToCanvas(file) {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = function () {
+      fitCanvasToImage(img);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      imageLoaded = true;
+      seed = null;
+      setSeedInfo('—', '—');
+      growButton.disabled = true;
+      resetButton.disabled = false;
+      isAnimating = false;
+      setStatus('Image loaded. Click on the image to pick a seed pixel.');
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = function () {
+      setStatus('Could not load image. Please try another file.', true);
+      URL.revokeObjectURL(url);
+    };
+    img.src = url;
+  }
+
+  function getMousePosOnCanvas(evt) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    const x = Math.floor((evt.clientX - rect.left) * scaleX);
+    const y = Math.floor((evt.clientY - rect.top) * scaleY);
+    return { x, y };
+  }
+
+  function getGrayFromData(data, width, x, y) {
+    const idx = (y * width + x) * 4;
+    const r = data[idx];
+    const g = data[idx + 1];
+    const b = data[idx + 2];
+    // Standard luminance approximation
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+  }
+
+  function drawSeedMarker(x, y) {
+    // Draw a small crosshair at the seed pixel on top of current canvas
+    ctx.save();
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x - 6, y);
+    ctx.lineTo(x + 6, y);
+    ctx.moveTo(x, y - 6);
+    ctx.lineTo(x, y + 6);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // --- NEW: animated region growing with "glow" and gradual expansion ---
+  function regionGrowAnimated(seedX, seedY, threshold) {
+    if (!baseImageData) return;
+
+    const width = baseImageData.width;
+    const height = baseImageData.height;
+    const src = baseImageData.data;
+
+    const seedGray = getGrayFromData(src, width, seedX, seedY);
+
+    const visited = new Uint8Array(width * height);
+    const queue = [];
+    queue.push({ x: seedX, y: seedY });
+    visited[seedY * width + seedX] = 1;
+
+    const currentImageData = ctx.getImageData(0, 0, width, height);
+    const dst = currentImageData.data;
+
+    // pick color for this region
+    const color = regionColors[currentRegionColorIndex % regionColors.length];
+    currentRegionColorIndex++;
+
+    const neighbors = [
+      [1, 0],
+      [-1, 0],
+      [0, 1],
+      [0, -1]
+      // add diagonals for 8-connectivity if you like:
+      // [1,1], [1,-1], [-1,1], [-1,-1]
+    ];
+
+    let pixelsCount = 0;
+
+    // How many pixels to process per animation frame
+    const batchSize = 1500;
+
+    function step() {
+      let processed = 0;
+
+      while (queue.length > 0 && processed < batchSize) {
+        const { x, y } = queue.shift();
+        const idx = (y * width + x) * 4;
+
+        // "Glow" strength based on distance from the seed
+        const dx0 = x - seedX;
+        const dy0 = y - seedY;
+        const dist = Math.sqrt(dx0 * dx0 + dy0 * dy0);
+
+        // Closer to seed => stronger alpha (more glow)
+        const glowFactor = Math.max(0.25, 1.0 - dist / 200); // between ~0.25 and 1
+        const alpha = 0.25 + 0.5 * glowFactor;               // 0.25–0.75
+
+        // Blend original pixel with region color (semi-transparent overlay)
+        dst[idx]   = Math.round((1 - alpha) * dst[idx]   + alpha * color[0]);
+        dst[idx+1] = Math.round((1 - alpha) * dst[idx+1] + alpha * color[1]);
+        dst[idx+2] = Math.round((1 - alpha) * dst[idx+2] + alpha * color[2]);
+        // keep original alpha channel (dst[idx+3])
+
+        pixelsCount++;
+
+        // explore neighbors
+        for (const [dx, dy] of neighbors) {
+          const nx = x + dx;
+          const ny = y + dy;
+          if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+          const nIndex = ny * width + nx;
+          if (visited[nIndex]) continue;
+
+          const nGray = getGrayFromData(src, width, nx, ny);
+          const diff = Math.abs(nGray - seedGray);
+          if (diff <= threshold) {
+            visited[nIndex] = 1;
+            queue.push({ x: nx, y: ny });
+          }
+        }
+
+        processed++;
+      }
+
+      // Draw the current state of the growing region
+      ctx.putImageData(currentImageData, 0, 0);
+      drawSeedMarker(seedX, seedY);
+
+      if (queue.length > 0) {
+        // Continue growth next frame
+        requestAnimationFrame(step);
+      } else {
+        // Finished
+        isAnimating = false;
+        growButton.disabled = false;
+        resetButton.disabled = false;
+        setStatus(
+          `Region grown from seed (${seedX}, ${seedY}) with threshold ${threshold}. Pixels in region: ${pixelsCount}.`
+        );
+      }
+    }
+
+    // Start animation
+    isAnimating = true;
+    growButton.disabled = true;
+    resetButton.disabled = true;
+    setStatus('Growing region (animated)...');
+    requestAnimationFrame(step);
+  }
+
+  // Event handlers
+  imageInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    if (isAnimating) return; // ignore while animating
+    loadImageToCanvas(file);
+  });
+
+  canvas.addEventListener('click', (e) => {
+    if (!imageLoaded) {
+      setStatus('Please load an image first.', true);
+      return;
+    }
+    if (isAnimating) {
+      setStatus('Please wait while the region is growing...', true);
+      return;
+    }
+    const pos = getMousePosOnCanvas(e);
+    // simple bounds check
+    if (pos.x < 0 || pos.x >= canvas.width || pos.y < 0 || pos.y >= canvas.height) {
+      return;
+    }
+    seed = { x: pos.x, y: pos.y };
+    setSeedInfo(seed.x, seed.y);
+
+    // Redraw current image (to remove previous seed marker) and mark new seed
+    const current = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    ctx.putImageData(current, 0, 0);
+    drawSeedMarker(seed.x, seed.y);
+
+    growButton.disabled = false;
+    setStatus('Seed selected. Adjust threshold if needed, then press "Start Growing".');
+  });
+
+  thresholdRange.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value, 10);
+    thresholdValue.textContent = val;
+    // simple micro-animation: scale value pill for a moment
+    thresholdValue.style.transform = 'scale(1.1)';
+    thresholdValue.style.transition = 'transform 0.12s ease';
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        thresholdValue.style.transform = 'scale(1.0)';
+      }, 80);
+    });
+  });
+
+  growButton.addEventListener('click', () => {
+    if (!imageLoaded) {
+      setStatus('Please load an image first.', true);
+      return;
+    }
+    if (!seed) {
+      setStatus('Click on the image to choose a seed pixel first.', true);
+      return;
+    }
+    if (isAnimating) {
+      setStatus('Region is already growing. Please wait...', true);
+      return;
+    }
+    const threshold = parseInt(thresholdRange.value, 10) || 20;
+    regionGrowAnimated(seed.x, seed.y, threshold);
+  });
+
+  resetButton.addEventListener('click', () => {
+    if (!imageLoaded || !baseImageData) return;
+    if (isAnimating) return; // avoid weird states if mid-animation
+    ctx.putImageData(baseImageData, 0, 0);
+    seed = null;
+    currentRegionColorIndex = 0;
+    setSeedInfo('—', '—');
+    growButton.disabled = true;
+    setStatus('Image reset. Click on the image to pick a new seed.');
+  });
+
+  // Keep canvas fitting nicely if window resizes (requires re-draw)
+  window.addEventListener('resize', () => {
+    if (!imageLoaded || !baseImageData) return;
+    if (isAnimating) return;
+    // Re-draw original, losing overlays on resize.
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = baseImageData.width;
+    tmpCanvas.height = baseImageData.height;
+    const tctx = tmpCanvas.getContext('2d');
+    tctx.putImageData(baseImageData, 0, 0);
+
+    const img = new Image();
+    img.onload = () => {
+      fitCanvasToImage(img);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      baseImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    };
+    img.src = tmpCanvas.toDataURL();
+  });
+
+  // --- set dynamic year in footer ---
+  const yearSpan = document.getElementById('year');
+  if (yearSpan) {
+    yearSpan.textContent = new Date().getFullYear();
+  }
+</script>
+</body>
+</html>
